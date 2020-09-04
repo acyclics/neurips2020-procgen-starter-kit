@@ -21,8 +21,13 @@ def _import_random_policy():
     from .random_policy.trainer import RandomPolicyTrainer
     return RandomPolicyTrainer
 
+def _import_acyclics_policy():
+    from .acyclics.acyclics import Acyclics
+    return Acyclics
+
 
 CUSTOM_ALGORITHMS = {
     "custom/CustomRandomAgent": _import_custom_random_agent,
-    "RandomPolicy": _import_random_policy
+    "RandomPolicy": _import_random_policy,
+    "AcyclicsPolicy": _import_acyclics_policy
 }
