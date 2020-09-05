@@ -49,6 +49,8 @@ RUN chown -R ${USER_NAME}:${USER_NAME} ${HOME_DIR}
 USER ${USER_NAME}
 WORKDIR ${HOME_DIR}
 
+RUN pip install -r requirements.txt
+
 ENV CONDA_DIR ${HOME_DIR}/.conda
 
 RUN wget -nv -O miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py37_4.8.2-Linux-x86_64.sh \
@@ -58,4 +60,4 @@ RUN wget -nv -O miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py37
 
 ENV PATH ${CONDA_DIR}/bin:${PATH}
 
-RUN pip install -r requirements.txt --no-cache-dir
+RUN pip install -r requirements.txt
