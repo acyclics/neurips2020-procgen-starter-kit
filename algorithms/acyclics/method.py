@@ -90,7 +90,7 @@ class Method():
         self.n_envs = n_envs
         self.total_steps = 0
     
-        episode_length = 1000
+        self.episode_length = episode_length = 1000
 
         MAX_BUFFER_SIZE = 100000
         self.buffer = TrajBuffer(env, episode_length, n_envs, MAX_BUFFER_SIZE)
@@ -120,13 +120,13 @@ class Method():
         states = torch.reshape(states, (states.size(0), 256))
         return states
     
-    def sample_trajectory(self, episodes, episode_length, obs_function):
+    def sample_trajectory(self, episodes, episode_length):
         mean_rewards = []
 
         for _ in range(episodes):
             _, observation, _ = self.env.observe()
             observation = observation['rgb']
-            observation = obs_function(observation)
+            observation = self.augment_og_obs(observation)
 
             obs_b = np.zeros([episode_length, self.n_envs, 3, 64, 64])
             action_b = np.zeros([episode_length, self.n_envs])
@@ -150,7 +150,7 @@ class Method():
                 reward, new_observation, done = self.env.observe()
 
                 new_observation = new_observation['rgb']
-                new_observation = obs_function(new_observation)
+                new_observation = self.augment_og_obs(new_observation)
 
                 with torch.no_grad():
                     agent_observation = torch.from_numpy(new_observation).float().to('cuda')
@@ -174,7 +174,7 @@ class Method():
     
     def train(self):
         
-        mean_rewards = self.sample_trajectory(1, episode_length, augment_og_obs)
+        mean_rewards = self.sample_trajectory(1, self.episode_length)
 
         for _ in range(self.VAE_ITRS):
             state_batch, action_batch, reward_batch, policies_batch, dones_batch = self.buffer.get()
@@ -185,7 +185,7 @@ class Method():
                 state_mb = torch.from_numpy(state_mb).float().to('cuda')
                 vae_loss = self.vqvae.train(state_mb, data_variance)
 
-        for _ in range(MPO_ITRS):
+        for _ in range(self.MPO_ITRS):
             state_batch, action_batch, reward_batch, policies_batch, dones_batch = self.buffer.get()
 
             state_batch = torch.from_numpy(state_batch).float().to('cuda')
