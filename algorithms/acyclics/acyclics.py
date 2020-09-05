@@ -20,8 +20,7 @@ class Acyclics(Trainer):
 
     @override(Trainer)
     def _train(self):
-        for _ in range(self.config["rollouts_per_iteration"]):
-            episode_reward_mean, steps = self.method.train()
+        episode_reward_mean, steps = self.method.train()
         return {
             "episode_reward_mean": episode_reward_mean,
             "timesteps_this_iter": steps,

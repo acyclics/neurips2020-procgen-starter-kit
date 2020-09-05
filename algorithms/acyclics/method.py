@@ -101,7 +101,7 @@ class Method():
         actor = CategoricalActor(in_units).cuda()
         critic = Critic(in_units).cuda()
 
-        self.mpo = MPO(actor, critic, vqvae, episode_length=episode_length, n_envs=n_envs)
+        self.mpo = MPO(actor, critic, self.vqvae, episode_length=episode_length, n_envs=n_envs)
 
         self.VAE_ITRS = 100
         self.MPO_ITRS = 50
