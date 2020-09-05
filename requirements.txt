@@ -1,5 +1,11 @@
 ray[rllib]==0.8.5
 procgen==0.10.1
-tensorflow==2.1.0
 mlflow==1.8.0
 boto3==1.13.10
+-f https://download.pytorch.org/whl/torch_stable.html 
+torch==1.6.0
+-f https://download.pytorch.org/whl/torch_stable.html
+torchvision==0.7.0
+opencv-python==4.4.0.42
+scikit-image==0.16.2
+colour

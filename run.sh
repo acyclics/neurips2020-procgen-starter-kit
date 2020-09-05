@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+#set -e
 
 #########################################
 # Your experiment file for submission   #
@@ -88,7 +88,6 @@ if [[ " $@ " =~ " --rollout " ]]; then
   python ./rollout.py $CHECKPOINT --episodes ${EPISODES:-5} --run $ROLLOUT_RUN --env $ROLLOUT_ENV
   STATUS_CODE=$?
 fi
-
 
 if [ "$VALID_RUN" = false ] ; then
     print_usage

@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from vqvae.vqvae_net import Encoder, Decoder
-from colorbin import color_bin, visualize_color_bin, N_RGBS, rgb_colors
+from algorithms.acyclics.vqvae_net import Encoder, Decoder
+from algorithms.acyclics.colorbin import color_bin, visualize_color_bin, N_RGBS, rgb_colors
 
 
 INPUT_FRAMES = 3

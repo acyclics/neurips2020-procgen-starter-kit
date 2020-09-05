@@ -173,30 +173,29 @@ class Method():
         return mean_rewards
     
     def train(self):
-        start_time = time.time()
-        while time.time() - start_time < 7200 and self.total_steps < 8e6:
-            mean_rewards = self.sample_trajectory(1, episode_length, augment_og_obs)
+        
+        mean_rewards = self.sample_trajectory(1, episode_length, augment_og_obs)
 
-            for _ in range(self.VAE_ITRS):
-                state_batch, action_batch, reward_batch, policies_batch, dones_batch = self.buffer.get()
-                state_batch = state_batch.reshape(-1, 3, 64, 64)
-                data_variance = np.var(state_batch)
-                for idx in range(0, state_batch.shape[0], 256):
-                    state_mb = state_batch[idx:idx+256]
-                    state_mb = torch.from_numpy(state_mb).float().to('cuda')
-                    vae_loss = self.vqvae.train(state_mb, data_variance)
+        for _ in range(self.VAE_ITRS):
+            state_batch, action_batch, reward_batch, policies_batch, dones_batch = self.buffer.get()
+            state_batch = state_batch.reshape(-1, 3, 64, 64)
+            data_variance = np.var(state_batch)
+            for idx in range(0, state_batch.shape[0], 256):
+                state_mb = state_batch[idx:idx+256]
+                state_mb = torch.from_numpy(state_mb).float().to('cuda')
+                vae_loss = self.vqvae.train(state_mb, data_variance)
 
-            for _ in range(MPO_ITRS):
-                state_batch, action_batch, reward_batch, policies_batch, dones_batch = self.buffer.get()
+        for _ in range(MPO_ITRS):
+            state_batch, action_batch, reward_batch, policies_batch, dones_batch = self.buffer.get()
 
-                state_batch = torch.from_numpy(state_batch).float().to('cuda')
-                action_batch = torch.from_numpy(action_batch).float().to('cuda')
-                reward_batch = torch.from_numpy(reward_batch).float().to('cuda')
-                policies_batch = torch.from_numpy(policies_batch).float().to('cuda')
-                dones_batch = torch.from_numpy(dones_batch).float().to('cuda')
+            state_batch = torch.from_numpy(state_batch).float().to('cuda')
+            action_batch = torch.from_numpy(action_batch).float().to('cuda')
+            reward_batch = torch.from_numpy(reward_batch).float().to('cuda')
+            policies_batch = torch.from_numpy(policies_batch).float().to('cuda')
+            dones_batch = torch.from_numpy(dones_batch).float().to('cuda')
 
-                q_loss, loss_policy, η, η_kl = self.mpo.train(state_batch, action_batch, reward_batch, policies_batch, dones_batch)
-            
-            self.mpo._update_param()
+            q_loss, loss_policy, η, η_kl = self.mpo.train(state_batch, action_batch, reward_batch, policies_batch, dones_batch)
+        
+        self.mpo._update_param()
         
         return mean_rewards, self.total_steps
