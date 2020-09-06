@@ -32,8 +32,8 @@ procgen-acyclics:
         log_sys_usage: True
         use_pytorch: True
 
-        num_workers: 0
-        num_envs_per_worker: 1
+        num_workers: 6
+        num_envs_per_worker: 12
         rollout_fragment_length: 1000
         batch_mode: truncate_episodes
 
