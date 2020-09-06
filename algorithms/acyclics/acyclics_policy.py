@@ -5,6 +5,8 @@ from ray.rllib.policy import Policy
 import numpy as np
 
 from algorithms.acyclics.method import Method
+from algorithms.acyclics.traj_buffer import TrajBuffer
+from algorithms.acyclics.colorbin import visualize_color_bin
 
 
 class AcyclicsPolicy(Policy):
@@ -21,7 +23,7 @@ class AcyclicsPolicy(Policy):
     
     def augment_og_obs(self, obs):
         empty_obs = np.zeros([self.n_envs, 64, 64, 3])
-        for idx in range(n_envs):
+        for idx in range(self.n_envs):
             empty_obs[idx] = visualize_color_bin(obs[idx])
         empty_obs = np.transpose(empty_obs, [0, 3, 1, 2])
         empty_obs = empty_obs / 255.0
@@ -29,7 +31,6 @@ class AcyclicsPolicy(Policy):
     
     def preprocess_states(self, states):
         states = self.method.vqvae.encode(states)
-        #states = states.view(states.size(0), 256)
         states = torch.reshape(states, (states.size(0), 256))
         return states
 
@@ -90,7 +91,6 @@ class AcyclicsPolicy(Policy):
         """
         data = self.method.mpo.get_weights()
         data['vae_state_dict'] = self.method.vqvae.state_dict()
-        data['target_vae_state_dict'] = self.method.mpo.target_vae.state_dict()
         return {"w": data}
 
     def set_weights(self, weights):
@@ -103,4 +103,3 @@ class AcyclicsPolicy(Policy):
         data = weights["w"]
         self.method.mpo.load_weights(data)
         self.method.vqvae.load_state_dict(data['vae_state_dict'])
-        self.method.mpo.target_vae.load_state_dict(data['target_vae_state_dict'])

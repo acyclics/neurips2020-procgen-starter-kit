@@ -11,15 +11,12 @@ from scipy.optimize import minimize
 
 class MPO(object):
     def __init__(self, actor, critic, vae, dual_constraint=0.1, kl_constraint=0.01,
-                 learning_rate=0.99, alpha=10.0, episode_length=3000,
-                 lagrange_it=5, device='cuda',
-                 save_path="./mpo/model/mpo"):
+                 learning_rate=0.99, alpha=10.0, lagrange_it=5, device='cuda'):
         # initialize some hyperparameters
         self.α = alpha  # scaling factor for the update step of η_μ
         self.ε = dual_constraint  # hard constraint for the KL
         self.ε_kl = kl_constraint
         self.γ = learning_rate  # learning rate
-        self.episode_length = episode_length
         self.lagrange_it = lagrange_it
 
         self.device = device
@@ -47,11 +44,6 @@ class MPO(object):
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=3e-4)
 
         self.vae = vae
-        self.target_vae = deepcopy(vae)
-        for target_param, param in zip(self.target_vae.parameters(),
-                                       self.vae.parameters()):
-            target_param.data.copy_(param.data)
-            target_param.requires_grad = False
 
         #self.mse_loss = nn.MSELoss()
         self.norm_loss_q = nn.SmoothL1Loss()
@@ -60,9 +52,6 @@ class MPO(object):
         self.η = np.random.rand()
         self.η_kl = 0.0
 
-        # control/log variables
-        self.save_path = save_path
-    
     def _update_critic_retrace(self, state_batch, action_batch, policies_batch, reward_batch, done_batch):
         action_size = policies_batch.shape[-1]
         nsteps = state_batch.shape[0]
@@ -135,10 +124,6 @@ class MPO(object):
         for target_param, param in zip(self.target_critic.parameters(), self.critic.parameters()):
             target_param.data.copy_(param.data)
 
-        # Update vae parameters
-        for target_param, param in zip(self.target_vae.parameters(), self.vae.parameters()):
-            target_param.data.copy_(param.data)
-
     def train(self, state_batch, action_batch, reward_batch, policies_batch, done_batch):
         episode_length = state_batch.shape[0]
         n_envs = state_batch.shape[1]
@@ -167,7 +152,7 @@ class MPO(object):
         
         with torch.no_grad():
             actions = torch.arange(self.action_shape)[..., None].expand(self.action_shape, mb_size).to(self.device)
-            target_state_batch = self.target_vae.encode(state_batch)
+            target_state_batch = self.vae.encode(state_batch)
             target_state_batch = torch.reshape(target_state_batch, (target_state_batch.size(0), self.obs_shape))
             b_p = self.target_actor.forward(target_state_batch)
             b = Categorical(probs=b_p)

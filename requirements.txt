@@ -8,3 +8,4 @@ torchvision==0.7.0+cu101
 opencv-python==4.4.0.42
 scikit-image==0.16.2
 colour
+scipy

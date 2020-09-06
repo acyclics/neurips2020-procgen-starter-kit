@@ -3,7 +3,7 @@ import random
 
 
 class TrajBuffer(object):
-    def __init__(self, n_steps, n_env, obs_shape, size=50000, raw_pixels=False):
+    def __init__(self, n_steps, n_env, size=50000, raw_pixels=False):
         """
         A buffer for observations, actions, rewards, mu's, states, masks and dones values
         :param env: (Gym environment) The environment to learn from
