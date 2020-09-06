@@ -90,7 +90,7 @@ class AcyclicsPolicy(Policy):
         """
         data = self.method.mpo.get_weights()
         data['vae_state_dict'] = self.method.vqvae.state_dict()
-        data['target_vae_state_dict'] self.method.mpo.target_vae.state_dict()
+        data['target_vae_state_dict'] = self.method.mpo.target_vae.state_dict()
         return {"w": data}
 
     def set_weights(self, weights):
