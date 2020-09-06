@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -e
+set -e
 
 #########################################
 # Your experiment file for submission   #

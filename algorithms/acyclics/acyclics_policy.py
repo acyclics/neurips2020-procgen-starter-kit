@@ -88,7 +88,10 @@ class AcyclicsPolicy(Policy):
         Returns:
             weights (obj): Serializable copy or view of model weights
         """
-        return {"w": self.method.mpo.get_weights()}
+        data = self.method.mpo.get_weights()
+        data['vae_state_dict'] = self.method.vqvae.state_dict()
+        data['target_vae_state_dict'] self.method.mpo.target_vae.state_dict()
+        return {"w": data}
 
     def set_weights(self, weights):
         """Returns the current exploration information of this policy.
@@ -97,5 +100,7 @@ class AcyclicsPolicy(Policy):
         Returns:
             any: Serializable information on the `self.exploration` object.
         """
-        self.w = weights["w"]
-        self.method.mpo.load_weights(self.w)
+        data = weights["w"]
+        self.method.mpo.load_weights(data)
+        self.method.vqvae.load_state_dict(data['vae_state_dict'])
+        self.method.mpo.target_vae.load_state_dict(data['target_vae_state_dict'])

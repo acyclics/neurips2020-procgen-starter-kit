@@ -83,7 +83,7 @@ class Critic(torch.nn.Module):
         return x
 
 
-class Method(nn.Module):
+class Method():
 
     def __init__(self):
         self.vqvae = Vqvae().cuda()
