@@ -22,8 +22,8 @@ def _import_random_policy():
     return RandomPolicyTrainer
 
 def _import_acyclics_policy():
-    from .acyclics.acyclics import Acyclics
-    return Acyclics
+    from .acyclics.acyclics_trainer import AcyclicsPolicyTrainer
+    return AcyclicsPolicyTrainer
 
 
 CUSTOM_ALGORITHMS = {

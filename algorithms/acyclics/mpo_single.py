@@ -10,7 +10,7 @@ from scipy.optimize import minimize
 
 
 class MPO(object):
-    def __init__(self, actor, critic, vae, n_envs, dual_constraint=0.1, kl_constraint=0.01,
+    def __init__(self, actor, critic, vae, dual_constraint=0.1, kl_constraint=0.01,
                  learning_rate=0.99, alpha=10.0, episode_length=3000,
                  lagrange_it=5, device='cuda',
                  save_path="./mpo/model/mpo"):
@@ -21,7 +21,6 @@ class MPO(object):
         self.γ = learning_rate  # learning rate
         self.episode_length = episode_length
         self.lagrange_it = lagrange_it
-        self.mb_size = (episode_length-1) * n_envs
 
         self.device = device
         
@@ -141,6 +140,10 @@ class MPO(object):
             target_param.data.copy_(param.data)
 
     def train(self, state_batch, action_batch, reward_batch, policies_batch, done_batch):
+        episode_length = state_batch.shape[0]
+        n_envs = state_batch.shape[1]
+        mb_size = (episode_length-1) * n_envs
+
         state_batch = state_batch[0:-1]
         action_batch = action_batch[0:-1]
         reward_batch = reward_batch[0:-1]
@@ -159,16 +162,16 @@ class MPO(object):
         q_loss = self._update_critic_retrace(qstate_batch, action_batch, policies_batch, reward_batch, done_batch)
 
         # Sample values
-        state_batch = state_batch.view(self.mb_size, *tuple(state_batch.shape[2:]))
-        action_batch = action_batch.view(self.mb_size, *tuple(action_batch.shape[2:]))
+        state_batch = state_batch.view(mb_size, *tuple(state_batch.shape[2:]))
+        action_batch = action_batch.view(mb_size, *tuple(action_batch.shape[2:]))
         
         with torch.no_grad():
-            actions = torch.arange(self.action_shape)[..., None].expand(self.action_shape, self.mb_size).to(self.device)
+            actions = torch.arange(self.action_shape)[..., None].expand(self.action_shape, mb_size).to(self.device)
             target_state_batch = self.target_vae.encode(state_batch)
             target_state_batch = torch.reshape(target_state_batch, (target_state_batch.size(0), self.obs_shape))
             b_p = self.target_actor.forward(target_state_batch)
             b = Categorical(probs=b_p)
-            b_prob = b.expand((self.action_shape, self.mb_size)).log_prob(actions).exp()
+            b_prob = b.expand((self.action_shape, mb_size)).log_prob(actions).exp()
             target_q = self.target_critic.forward(target_state_batch)
             target_q = target_q.transpose(0, 1)
             b_prob_np = b_prob.cpu().numpy() 
@@ -202,7 +205,7 @@ class MPO(object):
             π_p = self.actor.forward(state_batch)
             π = Categorical(probs=π_p)
             loss_p = torch.mean(
-                qij * π.expand((self.action_shape, self.mb_size)).log_prob(actions)
+                qij * π.expand((self.action_shape, mb_size)).log_prob(actions)
             )
         
             kl = self._categorical_kl(p1=π_p, p2=b_p)
@@ -221,22 +224,21 @@ class MPO(object):
         
         return q_loss.item(), loss_policy.item(), self.η, self.η_kl
             
-    def load_model(self):
-        checkpoint = torch.load(self.save_path)
-        self.critic.load_state_dict(checkpoint['critic_state_dict'])
-        self.target_critic.load_state_dict(checkpoint['target_critic_state_dict'])
-        self.actor.load_state_dict(checkpoint['actor_state_dict'])
-        self.target_actor.load_state_dict(checkpoint['target_actor_state_dict'])
-        self.critic_optimizer.load_state_dict(checkpoint['critic_optim_state_dict'])
-        self.actor_optimizer.load_state_dict(checkpoint['actor_optim_state_dict'])
-        self.η = checkpoint['lagrange_η']
-        self.η_kl = checkpoint['lagrange_η_kl']
-        self.critic.train()
-        self.target_critic.train()
-        self.actor.train()
-        self.target_actor.train()
+    def load_weights(self, data):
+        self.critic.load_state_dict(data['critic_state_dict'])
+        self.target_critic.load_state_dict(data['target_critic_state_dict'])
+        self.actor.load_state_dict(data['actor_state_dict'])
+        self.target_actor.load_state_dict(data['target_actor_state_dict'])
+        self.critic_optimizer.load_state_dict(data['critic_optim_state_dict'])
+        self.actor_optimizer.load_state_dict(data['actor_optim_state_dict'])
+        self.η = data['lagrange_η']
+        self.η_kl = data['lagrange_η_kl']
+        #self.critic.train()
+        #self.target_critic.train()
+        #self.actor.train()
+        #self.target_actor.train()
 
-    def save_model(self):
+    def get_weights(self):
         data = {
             'critic_state_dict': self.critic.state_dict(),
             'target_critic_state_dict': self.target_critic.state_dict(),
@@ -247,4 +249,4 @@ class MPO(object):
             'lagrange_η': self.η,
             'lagrange_η_kl': self.η_kl
         }
-        torch.save(data, self.save_path)
+        return data
