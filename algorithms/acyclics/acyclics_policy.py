@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import sys
 
 from ray.rllib.policy import Policy
 import numpy as np
@@ -16,10 +17,12 @@ class AcyclicsPolicy(Policy):
         self.method = Method()
 
         self.episode_length = episode_length = config['rollout_fragment_length']
-        self.n_envs = n_envs = config['num_workers'] * config['num_envs_per_worker']
-        MAX_BUFFER_SIZE = 100000
+        self.n_envs = n_envs = config['num_envs_per_worker']
 
-        self.buffer = TrajBuffer(episode_length, n_envs, MAX_BUFFER_SIZE)
+        MAX_BUFFER_SIZE = 1000
+        self.total_envs = total_envs = config['num_workers'] * config['num_envs_per_worker']
+
+        self.buffer = TrajBuffer(episode_length, total_envs, MAX_BUFFER_SIZE)
     
     def augment_og_obs(self, obs):
         empty_obs = np.zeros([self.n_envs, 64, 64, 3])
@@ -61,6 +64,7 @@ class AcyclicsPolicy(Policy):
             action_batch = np.reshape(action_batch.cpu().numpy(), -1)
             prob_batch = prob.cpu().numpy()
         info['probs'] = prob_batch
+        info['augmented_obs'] = obs_batch
         return action_batch, rnn_states, info
 
     def learn_on_batch(self, samples):
@@ -75,23 +79,30 @@ class AcyclicsPolicy(Policy):
         Reference: https://github.com/ray-project/ray/blob/master/rllib/policy/policy.py#L279-L316
         """
         # implement your learning code here
-        obs_b = samples['obs']
+        obs_b = samples['augmented_obs']
         action_b = samples['actions']
         reward_b = samples['rewards']
         prob_b = samples['probs']
         done_b = samples['dones']
+
+        obs_b = np.reshape(obs_b, [self.episode_length, self.total_envs,] + list(obs_b.shape[1:]))
+        action_b = np.reshape(action_b, [self.episode_length, self.total_envs,] + list(action_b.shape[1:]))
+        reward_b = np.reshape(reward_b, [self.episode_length, self.total_envs,] + list(reward_b.shape[1:]))
+        prob_b = np.reshape(prob_b, [self.episode_length, self.total_envs,] + list(prob_b.shape[1:]))
+        done_b = np.reshape(done_b, [self.episode_length, self.total_envs,] + list(done_b.shape[1:]))
+
         self.buffer.put(obs_b, action_b, reward_b, prob_b, done_b)
         self.method.train(self.buffer)
         return {}
-    
+
     def get_weights(self):
         """Returns model weights.
         Returns:
             weights (obj): Serializable copy or view of model weights
         """
-        data = self.method.mpo.get_weights()
-        data['vae_state_dict'] = self.method.vqvae.state_dict()
-        return {"w": data}
+        weights = self.method.mpo.get_weights()
+        weights['vae_state_dict'] = self.method.vqvae.state_dict()
+        return weights
 
     def set_weights(self, weights):
         """Returns the current exploration information of this policy.
@@ -100,6 +111,5 @@ class AcyclicsPolicy(Policy):
         Returns:
             any: Serializable information on the `self.exploration` object.
         """
-        data = weights["w"]
-        self.method.mpo.load_weights(data)
-        self.method.vqvae.load_state_dict(data['vae_state_dict'])
+        self.method.mpo.load_weights(weights)
+        self.method.vqvae.load_state_dict(weights['vae_state_dict'])
