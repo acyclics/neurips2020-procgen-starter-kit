@@ -34,7 +34,7 @@ procgen-acyclics:
 
         num_workers: 6
         num_envs_per_worker: 12
-        rollout_fragment_length: 1000
+        rollout_fragment_length: 256
         batch_mode: truncate_episodes
 
         num_cpus_per_worker: 1
