@@ -4,7 +4,7 @@ procgen-acyclics:
 
     stop:
         timesteps_total: 8000000
-    checkpoint_freq: 1
+    checkpoint_freq: 100
     checkpoint_at_end: True
     keep_checkpoints_num: 5
 
