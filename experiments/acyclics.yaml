@@ -40,7 +40,7 @@ procgen-acyclics:
         num_cpus_per_worker: 1
         num_gpus_per_worker: 0.1
         num_cpus_for_driver: 1
-        num_gpus: 1.0
+        num_gpus: 0.3
         
         timesteps_per_iteration: 0
         seed: null
